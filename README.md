@@ -1,4 +1,4 @@
-# Kpis Solar Syste 
+# Kpis Solar System
 
 Este desarrollo calcula los KPIs principales de un parque solar:
 
