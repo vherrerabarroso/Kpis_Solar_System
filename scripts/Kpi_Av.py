@@ -6,11 +6,29 @@ from typing import Dict, List, Tuple, Optional
 from math import isclose
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+import logging
+from logging.handlers import TimedRotatingFileHandler
+import os
 
 # CONFIGURACION API 
 
-URL_API = "http://127.0.0.1:8000/solar-system/av-pr"
+URL_API = "http://192.168.40.224:9010/solar-system/av-pr"
 ZONA_BOGOTA = ZoneInfo("America/Bogota")
+
+verbose = os.getenv("VERBOSE", "true").lower() == "true"
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+log_handler = TimedRotatingFileHandler(
+    filename="logs/av.log",
+    when="midnight",
+    interval=1,
+    backupCount=15,
+    encoding='utf-8'
+)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+logger.addHandler(log_handler)
 
 # CLAVES
 
@@ -35,6 +53,17 @@ POTENCIAS_NOM_KW: Dict[str, float] = {
 }
 
 # FUNCIONES 
+
+def post_api(url, data):
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 201:
+            logger.info("Data posted successfully.")
+            print("Data posted successfully.")
+        else:
+            logger.error(f"Failed to post data: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.exception(f"Exception during API post: {str(e)}")
 
 # Convierte un timestamp ISO-8601 a datetime y le agrega zona Bogotá si no trae tz
 def parsear_ts(ts_iso: str) -> datetime:
@@ -207,12 +236,12 @@ def tarea_programada():
     
 
     salida = {
-    "ts": ts_final,
-    "inc_data": {**ainv_pct, "av": asys_pct}
-}
+        "ts": ts_final,
+        "inc_data": {**ainv_pct, "av": asys_pct}
+    }
+    post_api(url="http://192.168.40.224/api/staging-area/", data=salida)
 
-    print(json.dumps(salida, ensure_ascii=False))
-
+    
 # Ejecuta cada hora al minuto 14:59 (America/Bogota)
 if __name__ == "__main__":
     planificador = BlockingScheduler(timezone=str(ZONA_BOGOTA))
@@ -221,7 +250,8 @@ if __name__ == "__main__":
         tarea_programada,
         CronTrigger(minute=14, second=59, timezone=str(ZONA_BOGOTA))
     )
-    print("Planificador activo. Se ejecutará cada hora a hh:14:59 (America/Bogota).")
+    logger.info("Planificador activo. Se ejecutará cada hora a hh:14:59 (America/Bogota).")
+    #print("Planificador activo. Se ejecutará cada hora a hh:14:59 (America/Bogota).")
     try:
         planificador.start()
     except (KeyboardInterrupt, SystemExit):

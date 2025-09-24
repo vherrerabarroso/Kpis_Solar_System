@@ -1,0 +1,29 @@
+services:
+  api-energy:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9010:9010"
+    volumes:
+      - ./scripts:/app
+    command: uvicorn solar_system_get_api:app --reload --host 0.0.0.0 --port 9010
+
+  staging-av:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/app
+    command: python Kpi_Av.py
+
+  staging-pr:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/app
+    command: python Kpi_Pr.py

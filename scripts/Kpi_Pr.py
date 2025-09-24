@@ -2,12 +2,30 @@ import json, requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional
+import logging
+from logging.handlers import TimedRotatingFileHandler
+import os
 
 # CONFIGURACION API 
 
-URL_API = "http://127.0.0.1:8000/solar-system/av-pr"
+URL_API = "http://192.168.40.224:9010/solar-system/av-pr"
 ZONA_BOGOTA = ZoneInfo("America/Bogota")
 EJECUTAR_AL_INICIO = True
+
+verbose = os.getenv("VERBOSE", "true").lower() == "true"
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+log_handler = TimedRotatingFileHandler(
+    filename="logs/pr.log",
+    when="midnight",
+    interval=1,
+    backupCount=15,
+    encoding='utf-8'
+)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+logger.addHandler(log_handler)
 
 # POTENCIA NOMINAL
 
@@ -37,6 +55,18 @@ TMOD_LIST = [29.4, 29.2, 29.2, 29.3, 29.9, 30.3,
 IRR_UMBRAL = 30.0 # W/m² 
 
 # FUNCIONES
+
+def post_api(url, data):
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 201:
+            logger.info("Data posted successfully.")
+            print("Data posted successfully.")
+        else:
+            logger.error(f"Failed to post data: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.exception(f"Exception during API post: {str(e)}")
+
 
 # Convierte una cadena de texto de fecha y hora en un objeto 
 def parse_dt(ts: str) -> datetime:
@@ -154,7 +184,8 @@ def tarea():
     try:
         datos = consultar_api()
         salida = calcular_pr(datos)
-        print(json.dumps(salida, ensure_ascii=False))
+        print(salida)
+        post_api(url="http://192.168.40.224/api/staging-area/", data=salida)
     except Exception as e:
         print(json.dumps({"ts": None, "pri": {}, "pr": None, "error": str(e)}, ensure_ascii=False))
 
@@ -168,8 +199,7 @@ if __name__ == "__main__":
         tarea,
         CronTrigger(minute=14, second=59, timezone=str(ZONA_BOGOTA))
     )
-    print("Planificador activo. Se ejecutará cada hora a hh:14:59 (America/Bogota).")
-
+    logger.info("Planificador activo. Se ejecutará cada hora a hh:14:59 (America/Bogota).")
     try:
         planificador.start()
     except (KeyboardInterrupt, SystemExit):
