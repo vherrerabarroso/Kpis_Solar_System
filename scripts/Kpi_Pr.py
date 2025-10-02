@@ -122,8 +122,8 @@ def calcular_pr(blob: Dict[str, List[Dict]]) -> Dict:
 
     if (irr_avg_wm2 is None) or (irr_avg_wm2 <= IRR_UMBRAL):
         kmap = energy_series_keys(blob)  
-        pri_ceros = {inv: 0.0 for inv in kmap.keys() if inv in POTENCIAS_NOM_KW} 
-        return {"ts": t_fin.isoformat(), "pri": pri_ceros, "pr": 0.0}
+        #pri_ceros = {inv: 0.0 for inv in kmap.keys() if inv in POTENCIAS_NOM_KW} 
+        return {"ts": t_fin.isoformat(),"inc_data": {'PrPM01': 0.0, 'PrPM02': 0.0, 'PrPM03': 0.0, 'PrPM05': 0.0, 'PrPM06': 0.0, 'pr': 0.0}}
 
     
     prom_in  = mean([p.get("value") for p in blob.get(TIN_KEY, [])])
