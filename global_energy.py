@@ -1,23 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-Kpi_Energy15_total_min.py
-
-Cada 15 minutos:
-- Consulta el origen (ENERGY_SRC_URL).
-- Calcula ΔE = E(última) - E(penúltima) para cada inversor (PMxx...).
-- Suma todos los ΔE -> E_total.
-- Muestra en consola un JSON mínimo:
-
-{
-  "ts": "<último_ts>",
-  "inc_data": {
-    "E_total": <suma_ΔE>
-  }
-}
-"""
-
 import os
 import json
 from datetime import datetime
@@ -28,9 +8,7 @@ import requests
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# =========================
-# CONFIGURACIÓN
-# =========================
+
 
 ZONA_BOGOTA = ZoneInfo("America/Bogota")
 URL_API_GET  = os.getenv("ENERGY_SRC_URL",  "http://192.168.40.224:9010/solar-system/av-pr")
@@ -38,9 +16,7 @@ URL_API_GET  = os.getenv("ENERGY_SRC_URL",  "http://192.168.40.224:9010/solar-sy
 PREFIJO_INVER = "PM"
 CLAVE_ENERGIA = "_ACTIVE_ENERGY_SUPPLIED_(kWh)"
 
-# =========================
-# UTILIDADES
-# =========================
+
 
 def parse_ts(ts_iso: str) -> datetime:
     dt = datetime.fromisoformat(ts_iso)
@@ -74,9 +50,6 @@ def delta_ultimas_dos(pts: List[Tuple[datetime, float, str]]) -> Optional[Tuple[
     (_, v_prev, _), (_, v_curr, ts_curr) = pts[-2], pts[-1]
     return ts_curr, round(v_curr - v_prev, 6)
 
-# =========================
-# TAREA PRINCIPAL
-# =========================
 
 def tarea_energy15_total_min():
     try:
@@ -115,9 +88,6 @@ def tarea_energy15_total_min():
 
     print(json.dumps(payload, ensure_ascii=False))
 
-# =========================
-# SCHEDULER: cada 15 minutos (00,15,30,45)
-# =========================
 
 def main():
     sched = BlockingScheduler(timezone=str(ZONA_BOGOTA))
@@ -132,5 +102,5 @@ def main():
         pass
 
 if __name__ == "__main__":
-    # No ejecuta la tarea inmediatamente; solo arranca el scheduler.
+    
     main()
